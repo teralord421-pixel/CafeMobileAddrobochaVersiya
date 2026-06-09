@@ -1928,13 +1928,20 @@ function repeatOrder(orderId) {
 
 document.addEventListener("click", async (event) => {
   const target = event.target.closest(
-    "[data-nav], [data-action], [data-category], [data-add], [data-inc], [data-dec], [data-remove], [data-city], [data-branch], [data-promo], [data-repeat], [data-favorite], [data-detail]"
+    "[data-nav], [data-action], [data-category], [data-add], [data-inc], [data-dec], [data-remove], [data-city], [data-branch], [data-promo], [data-repeat], [data-favorite], [data-detail], [data-role-login], [data-admin-edit-product], [data-admin-delete-product], [data-admin-edit-promo], [data-admin-delete-promo], [data-staff-status]"
   );
 
   if (!target) return;
 
   if (target.dataset.nav) setScreen(target.dataset.nav);
   if (target.dataset.action === "open-city") $("#cityDialog").showModal();
+  if (target.dataset.action === "open-account") $("#accountDialog").showModal();
+  if (target.dataset.action === "start-qr-scan") startQrScanner();
+  if (target.dataset.action === "stop-qr-scan") stopQrScanner();
+  if (target.dataset.action === "verify-order-code") verifyOrderCode();
+  if (target.dataset.action === "new-product") resetAdminProductForm();
+  if (target.dataset.action === "new-promo") resetAdminPromoForm();
+  if (target.dataset.action === "toggle-bonus") toggleBonus();
   if (target.dataset.action === "clear-search") {
     state.query = "";
     saveState();
@@ -1978,6 +1985,12 @@ document.addEventListener("click", async (event) => {
   if (target.dataset.repeat) repeatOrder(target.dataset.repeat);
   if (target.dataset.favorite) toggleFavorite(target.dataset.favorite);
   if (target.dataset.detail) openProduct(target.dataset.detail);
+  if (target.dataset.roleLogin) loginRole(target.dataset.roleLogin);
+  if (target.dataset.adminEditProduct) loadAdminProduct(target.dataset.adminEditProduct);
+  if (target.dataset.adminDeleteProduct) deleteAdminProduct(target.dataset.adminDeleteProduct);
+  if (target.dataset.adminEditPromo) loadAdminPromo(target.dataset.adminEditPromo);
+  if (target.dataset.adminDeletePromo) deleteAdminPromo(target.dataset.adminDeletePromo);
+  if (target.dataset.staffStatus) setOrderWorkflow(target.dataset.staffStatus, target.dataset.status);
 });
 
 $("#menuSearch").addEventListener("input", (event) => {
@@ -2004,6 +2017,16 @@ $("#orderForm").addEventListener("submit", (event) => {
 $("#profileForm").addEventListener("submit", (event) => {
   event.preventDefault();
   saveProfile(event.currentTarget);
+});
+
+$("#adminProductForm")?.addEventListener("submit", (event) => {
+  event.preventDefault();
+  saveAdminProduct(event.currentTarget);
+});
+
+$("#adminPromoForm")?.addEventListener("submit", (event) => {
+  event.preventDefault();
+  saveAdminPromo(event.currentTarget);
 });
 
 window.addEventListener("online", () => {
