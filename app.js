@@ -760,10 +760,21 @@ function setRole(role) {
 function loginRole(role) {
   const pinInput = $("#accountPin");
   const pin = String(pinInput?.value || "").trim();
-  if (role !== "customer" && pin !== accountRoles[role].pin) {
-    showToast("Невірний PIN");
-    return;
+
+  if (role !== "customer") {
+    if (!pin) {
+      showToast("Введіть PIN код");
+      pinInput?.focus();
+      return;
+    }
+    if (pin !== accountRoles[role].pin) {
+      showToast("Невірний PIN");
+      if (pinInput) pinInput.value = "";
+      pinInput?.focus();
+      return;
+    }
   }
+
   if (pinInput) pinInput.value = "";
   setRole(role);
 }
@@ -1586,6 +1597,8 @@ function saveAdminProduct(form) {
     menuItems = [item, ...menuItems];
   }
   productDetails = { ...productDetails, [item.id]: details };
+
+  // Create a deep copy of the array for true immutability updates if needed later, but assignment above is enough for render triggers.
   saveState();
   resetAdminProductForm();
   renderFeatured();
@@ -1593,6 +1606,7 @@ function saveAdminProduct(form) {
   renderProfile();
   renderAdmin();
   showToast("Товар збережено");
+  window.scrollTo({ top: 0, behavior: 'smooth' }); // Return to top of list
 }
 
 function deleteAdminProduct(productId) {
@@ -1646,12 +1660,14 @@ function saveAdminPromo(form) {
   } else {
     promos = [promo, ...promos];
   }
+
   saveState();
   resetAdminPromoForm();
   renderPromos();
   renderCart();
   renderAdmin();
   showToast("Акцію збережено");
+  window.scrollTo({ top: 0, behavior: 'smooth' }); // Return to top of list
 }
 
 function deleteAdminPromo(promoId) {
@@ -1674,6 +1690,11 @@ function loadAdminProduct(productId) {
   const form = $("#adminProductForm");
   if (!item || !form) return;
   const details = productInfo(item);
+
+  // Clear potential existing errors
+  const inputs = form.querySelectorAll('input, select, textarea');
+  inputs.forEach(input => input.setCustomValidity(''));
+
   form.elements.productId.value = item.id;
   form.elements.productName.value = item.name;
   form.elements.productCategory.value = item.category;
@@ -1693,6 +1714,11 @@ function loadAdminPromo(promoId) {
   const promo = promos.find((item) => item.id === promoId);
   const form = $("#adminPromoForm");
   if (!promo || !form) return;
+
+  // Clear potential existing errors
+  const inputs = form.querySelectorAll('input, select, textarea');
+  inputs.forEach(input => input.setCustomValidity(''));
+
   form.elements.promoId.value = promo.id;
   form.elements.promoTitle.value = promo.title;
   form.elements.promoCode.value = promo.code;
@@ -1928,13 +1954,20 @@ function repeatOrder(orderId) {
 
 document.addEventListener("click", async (event) => {
   const target = event.target.closest(
-    "[data-nav], [data-action], [data-category], [data-add], [data-inc], [data-dec], [data-remove], [data-city], [data-branch], [data-promo], [data-repeat], [data-favorite], [data-detail]"
+    "[data-nav], [data-action], [data-category], [data-add], [data-inc], [data-dec], [data-remove], [data-city], [data-branch], [data-promo], [data-repeat], [data-favorite], [data-detail], [data-role-login], [data-admin-edit-product], [data-admin-delete-product], [data-admin-edit-promo], [data-admin-delete-promo], [data-staff-status]"
   );
 
   if (!target) return;
 
   if (target.dataset.nav) setScreen(target.dataset.nav);
   if (target.dataset.action === "open-city") $("#cityDialog").showModal();
+  if (target.dataset.action === "open-account") $("#accountDialog").showModal();
+  if (target.dataset.action === "start-qr-scan") startQrScanner();
+  if (target.dataset.action === "stop-qr-scan") stopQrScanner();
+  if (target.dataset.action === "verify-order-code") verifyOrderCode();
+  if (target.dataset.action === "new-product") resetAdminProductForm();
+  if (target.dataset.action === "new-promo") resetAdminPromoForm();
+  if (target.dataset.action === "toggle-bonus") toggleBonus();
   if (target.dataset.action === "clear-search") {
     state.query = "";
     saveState();
@@ -1978,6 +2011,12 @@ document.addEventListener("click", async (event) => {
   if (target.dataset.repeat) repeatOrder(target.dataset.repeat);
   if (target.dataset.favorite) toggleFavorite(target.dataset.favorite);
   if (target.dataset.detail) openProduct(target.dataset.detail);
+  if (target.dataset.roleLogin) loginRole(target.dataset.roleLogin);
+  if (target.dataset.adminEditProduct) loadAdminProduct(target.dataset.adminEditProduct);
+  if (target.dataset.adminDeleteProduct) deleteAdminProduct(target.dataset.adminDeleteProduct);
+  if (target.dataset.adminEditPromo) loadAdminPromo(target.dataset.adminEditPromo);
+  if (target.dataset.adminDeletePromo) deleteAdminPromo(target.dataset.adminDeletePromo);
+  if (target.dataset.staffStatus) setOrderWorkflow(target.dataset.staffStatus, target.dataset.status);
 });
 
 $("#menuSearch").addEventListener("input", (event) => {
@@ -2004,6 +2043,16 @@ $("#orderForm").addEventListener("submit", (event) => {
 $("#profileForm").addEventListener("submit", (event) => {
   event.preventDefault();
   saveProfile(event.currentTarget);
+});
+
+$("#adminProductForm")?.addEventListener("submit", (event) => {
+  event.preventDefault();
+  saveAdminProduct(event.currentTarget);
+});
+
+$("#adminPromoForm")?.addEventListener("submit", (event) => {
+  event.preventDefault();
+  saveAdminPromo(event.currentTarget);
 });
 
 window.addEventListener("online", () => {
